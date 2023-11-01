@@ -1,0 +1,53 @@
+// Copyright 2023 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#ifndef COMPONENTS_METRICS_STRUCTURED_KEY_DATA_PROVIDER_FILE_H_
+#define COMPONENTS_METRICS_STRUCTURED_KEY_DATA_PROVIDER_FILE_H_
+
+#include <memory>
+
+#include "base/files/file_path.h"
+#include "base/memory/weak_ptr.h"
+#include "base/time/time.h"
+#include "components/metrics/structured/key_data_provider.h"
+#include "third_party/abseil-cpp/absl/types/optional.h"
+
+namespace metrics::structured {
+
+// KeyDataProvider implementation that stores the keys in a file.
+class KeyDataProviderFile : public KeyDataProvider {
+ public:
+  KeyDataProviderFile(const base::FilePath& file_path,
+                      base::TimeDelta write_delay,
+                      base::OnceClosure on_key_ready_callback);
+  ~KeyDataProviderFile() override;
+
+  // KeyDataProvider:
+  bool IsReady() override;
+  void OnKeyReady() override;
+  void InitializeDeviceKey(base::OnceClosure callback) override;
+  void InitializeProfileKey(const base::FilePath& profile_path,
+                            base::OnceClosure callback) override;
+  absl::optional<uint64_t> GetId(const std::string& project_name) override;
+  KeyData* GetKeyData(const std::string& project_name) override;
+  KeyData* GetDeviceKeyData() override;
+  KeyData* GetProfileKeyData() override;
+  void Purge() override;
+  bool HasProfileKey() override;
+  bool HasDeviceKey() override;
+
+ private:
+  const base::FilePath file_path_;
+  const base::TimeDelta write_delay_;
+  bool is_data_loaded_ = false;
+
+  std::unique_ptr<KeyData> key_data_;
+  base::OnceClosure on_key_ready_callback_;
+
+  base::WeakPtrFactory<KeyDataProviderFile> weak_ptr_factory_{this};
+};
+
+}  // namespace metrics::structured
+
+#endif  // COMPONENTS_METRICS_STRUCTURED_KEY_DATA_PROVIDER_FILE_H_
